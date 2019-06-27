@@ -6,7 +6,7 @@ professional standard code.
 
 It will cover themes like:
 Routing
-Bearer Authorization wqith Jwt
+Bearer Authorization with Jwt middleware
 Middleware
 Controllers
 DB Access and query definitions
