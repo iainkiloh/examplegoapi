@@ -11,5 +11,10 @@ func GetPersonQuery(id int) (contracts.PersonForFetch, error) {
 	dbResult := db.QueryRow(queryToExecute, strconv.Itoa(id))
 	response := new(contracts.PersonForFetch)
 	err := dbResult.Scan(&response.Id, &response.Name, &response.Title)
+	if err != nil {
+		if err.Error() == "sql: no rows in result set" {
+			return *response, nil
+		}
+	}
 	return *response, err
 }

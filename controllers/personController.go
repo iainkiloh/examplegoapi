@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/iainkiloh/examplegoapi/contracts"
 	"github.com/iainkiloh/examplegoapi/queries"
 )
@@ -20,6 +21,21 @@ func (c PersonController) registerRoutes() {
 }
 
 func (c PersonController) handlePersonRoute(w http.ResponseWriter, r *http.Request) {
+
+	tokenHeader := r.Header.Get("Authorization")
+	splitted := strings.Split(tokenHeader, " ")
+	tokenPart := splitted[1]
+	token, err := jwt.ParseWithClaims(tokenPart, jwt.MapClaims{}, jwtMiddleware.Options.ValidationKeyGetter)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	if token == nil {
+		return
+	}
+
+	fmt.Println(token.Claims)
+
 	switch r.Method {
 	case http.MethodPost:
 		handlePersonPost(w, r)
@@ -114,6 +130,7 @@ func handlePersonGet(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println("error:", err)
 		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 	if dbResult.Id != 0 {
 		//encode to Json
@@ -121,6 +138,7 @@ func handlePersonGet(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println("Error", err)
 			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
 		w.Write([]byte(string(response)))
 	} else {

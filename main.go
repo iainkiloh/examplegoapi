@@ -29,12 +29,14 @@ func main() {
 	//register all routes
 	controllers.Startup()
 
-	//setup the middleware pipeline - logging, compression, DefaultServeMux
-	pipeline := middleware.NewLoggerMiddleware(
-		middleware.NewGzipMiddleware(http.DefaultServeMux))
+	//setup the middleware pipeline - timeout, logging, compression, DefaultServeMux
+	requestMiddlewarePipeline := middleware.NewTimeoutMiddleware(
+		middleware.NewLoggerMiddleware(
+			middleware.NewGzipMiddleware(
+				http.DefaultServeMux)))
 
 	//start listening on port, use the setup middleware
-	http.ListenAndServe(":9999", pipeline)
+	http.ListenAndServe(":9999", requestMiddlewarePipeline)
 
 	//log api startup
 	fmt.Println("examplegoapi started and listening on port 9999")

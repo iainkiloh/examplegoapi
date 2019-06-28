@@ -39,7 +39,6 @@ var jwtMiddleware = jwtmiddleware.New(jwtmiddleware.Options{
 		if !checkAud {
 			return token, errors.New("Invalid audience.")
 		}
-		//iss := "VShipsTokenApi"
 		checkIss := token.Claims.(jwt.MapClaims).VerifyIssuer(iss, false)
 		if !checkIss {
 			return token, errors.New("Invalid issuer.")
@@ -63,6 +62,11 @@ func Startup() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+type MyClaimsType struct {
+	*jwt.MapClaims
+	UserId string `json:"http://hmm/hmm/UserID"`
 }
 
 /*
