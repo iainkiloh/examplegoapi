@@ -8,33 +8,32 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/iainkiloh/examplegoapi/contracts"
+	"github.com/iainkiloh/examplegoapi/middleware"
 	"github.com/iainkiloh/examplegoapi/queries"
 )
 
 type PersonController struct{}
 
 func (c PersonController) registerRoutes() {
-	http.HandleFunc("/api/v1/person", checkJwt(c.handlePersonRoute))
-	http.HandleFunc("/api/v1/person/", checkJwt(c.handlePersonRoute))
+
+	//set up route handlers for requests and put them through the claims pipeline
+	//which validates the JWT
+	//and then adds custom claims to the request context
+	http.HandleFunc("/api/v1/person", middleware.CheckJwt(
+		middleware.GetClaimsContext(c.handlePersonRoute)))
+	http.HandleFunc("/api/v1/person/", middleware.CheckJwt(
+		middleware.GetClaimsContext(c.handlePersonRoute)))
 }
 
 func (c PersonController) handlePersonRoute(w http.ResponseWriter, r *http.Request) {
 
-	tokenHeader := r.Header.Get("Authorization")
-	splitted := strings.Split(tokenHeader, " ")
-	tokenPart := splitted[1]
-	token, err := jwt.ParseWithClaims(tokenPart, jwt.MapClaims{}, jwtMiddleware.Options.ValidationKeyGetter)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	if token == nil {
-		return
-	}
+	//test the request timeout middleware
+	//time.Sleep(12 * time.Second)
 
-	fmt.Println(token.Claims)
+	//check for our user in our request context with key of 'customUser'
+	userInContext := r.Context().Value("CustomUser")
+	fmt.Println("added and fetched from context in controller: ", userInContext)
 
 	switch r.Method {
 	case http.MethodPost:

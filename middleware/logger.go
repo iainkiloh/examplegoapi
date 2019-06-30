@@ -12,6 +12,7 @@ type LoggerMiddleware struct {
 
 func (l *LoggerMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
+
 	l.Next.ServeHTTP(w, r)
 	log.Printf("%s %s %v", r.Method, r.URL.Path, time.Since(start))
 }
