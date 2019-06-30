@@ -2,13 +2,17 @@ package main
 
 import (
 	"database/sql"
+	b64 "encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 
+	jwtmiddleware "github.com/auth0/go-jwt-middleware"
+	"github.com/dgrijalva/jwt-go"
 	_ "github.com/lib/pq"
 
 	"github.com/iainkiloh/examplegoapi/configurations"
@@ -21,6 +25,8 @@ func main() {
 
 	//load configuration from file
 	loadConfig()
+
+	setUpJwtMiddleware()
 
 	//setup db conection
 	db := connectToDatabase()
@@ -84,4 +90,38 @@ func connectToDatabase() *sql.DB {
 
 	queries.SetDatabase(db)
 	return db
+}
+
+func setUpJwtMiddleware() {
+
+	signingKey := configurations.GetTokenSigningKey()
+	var err error
+	decodedKey, err := b64.StdEncoding.DecodeString(signingKey)
+	if err != nil {
+		panic(err)
+	}
+
+	var jwtMiddleware = jwtmiddleware.New(jwtmiddleware.Options{
+		ValidationKeyGetter: func(token *jwt.Token) (interface{}, error) {
+			//set the token issuer and audience from configuration
+			iss, aud := configurations.GetTokenIssuerAndAudience()
+			checkAud := token.Claims.(jwt.MapClaims).VerifyAudience(aud, false)
+			if !checkAud {
+				return token, errors.New("Invalid audience.")
+			}
+			checkIss := token.Claims.(jwt.MapClaims).VerifyIssuer(iss, false)
+			if !checkIss {
+				return token, errors.New("Invalid issuer.")
+			}
+
+			return []byte(decodedKey), nil
+		},
+
+		// When set, the middleware verifies that tokens are signed with the specific signing algorithm
+		// If the signing method is not constant the ValidationKeyGetter callback can be used to implement additional checks
+		// Important to avoid security issues described here: https://auth0.com/blog/2015/03/31/critical-vulnerabilities-in-json-web-token-libraries/
+		SigningMethod: jwt.SigningMethodHS256,
+	})
+
+	middleware.SetJwtMiddleware(jwtMiddleware)
 }

@@ -3,14 +3,15 @@ package controllers
 import (
 	"net/http"
 
+	"github.com/iainkiloh/examplegoapi/middleware"
 	"github.com/iainkiloh/examplegoapi/queries"
 )
 
 type HealthController struct{}
 
 func (c HealthController) registerRoutes() {
-	http.HandleFunc("/api/v1/health", checkJwt(c.handleHealth))
-	http.HandleFunc("/api/v1/health/live", checkJwt(c.handleHealthLive))
+	http.HandleFunc("/api/v1/health", middleware.CheckJwt(c.handleHealth))
+	http.HandleFunc("/api/v1/health/live", middleware.CheckJwt(c.handleHealthLive))
 }
 
 //just returns ok

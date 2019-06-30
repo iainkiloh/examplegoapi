@@ -12,15 +12,11 @@ type TimeoutMiddleware struct {
 
 func (tm *TimeoutMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
-	//get the context and create a new one with a timeout of 10 seconds
-	ctx := r.Context()
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	//create a new context with a timeout of 10 seconds
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	//ensure resources related with the context are released from memory once
 	//the middleware operations are complete
 	defer cancel()
-
-	//give the request our newly created context
-	r.WithContext(ctx)
 
 	//create a channel to receive on when the request finishes
 	chRequestFinished := make(chan struct{})
@@ -29,7 +25,7 @@ func (tm *TimeoutMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	//do this in an inline goroutine so we can check for completion or timeout on both
 	//ctx.Done channel or our requestFinsihed channel
 	go func() {
-		tm.Next.ServeHTTP(w, r)
+		tm.Next.ServeHTTP(w, r.WithContext(ctx))
 		chRequestFinished <- struct{}{}
 	}()
 
