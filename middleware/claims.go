@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
 	"net/http"
 	"strings"
 
@@ -10,8 +10,14 @@ import (
 )
 
 type UserInContext struct {
-	UserDisplayName string
-	UserId          string
+	UserEmail string
+	UserId    string
+	Roles     []Role
+}
+
+type Role struct {
+	RoleId   int    `json:"RoleId"`
+	RoleName string `json:"RoleName"`
 }
 
 //handler func gets custom claims from claims map and adds them to the context
@@ -19,15 +25,17 @@ type UserInContext struct {
 func GetClaimsContext(next http.HandlerFunc) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		//todo this code needs a cleanup and error checking
-		//todo get roles for user
-		//parse the Auth header
+
+		//parse the Auth header to retrieve the token
 		tokenHeader := r.Header.Get("Authorization")
 		splitted := strings.Split(tokenHeader, " ")
+		if len(splitted) < 2 {
+			return
+		}
 		tokenPart := splitted[1]
 		token, err := jwt.ParseWithClaims(tokenPart, jwt.MapClaims{}, tokenMiddleware.Options.ValidationKeyGetter)
 		if err != nil {
-			fmt.Println(err)
+			//fmt.Println(err)
 			return
 		}
 		if token == nil {
@@ -39,14 +47,30 @@ func GetClaimsContext(next http.HandlerFunc) http.HandlerFunc {
 
 		//create userincontext and set fields using the map, which contains our custom claims
 		userInContext := UserInContext{}
-		userDisplayName, _ := claimsMap["http://MyCustomClaimType/UserDisplayName"]
-		userId, _ := claimsMap["http://MyCustomClaimType/UserID"]
+		userEmail, _ := claimsMap["KilohApp/UserEmail"]
+		userId, _ := claimsMap["KilohApp/UserId"]
 
-		if userDisplayName != nil {
-			userInContext.UserDisplayName = userDisplayName.(string)
+		if userEmail != nil {
+			userInContext.UserEmail = userEmail.(string)
 		}
 		if userId != nil {
 			userInContext.UserId = userId.(string)
+		}
+
+		//check for custom role claims
+		roles, ok := claimsMap["KilohApp/SystemRole"].([]interface{})
+
+		if ok {
+			for _, v := range roles {
+				var role Role
+				jsonRole, ok := v.(string)
+				if ok {
+					err := json.Unmarshal([]byte(jsonRole), &role)
+					if err == nil {
+						userInContext.Roles = append(userInContext.Roles, role)
+					}
+				}
+			}
 		}
 
 		//get the context and create a new one with our custom user type populate from our custom claims

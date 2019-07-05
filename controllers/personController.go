@@ -19,7 +19,7 @@ func (c PersonController) registerRoutes() {
 
 	//set up route handlers for requests and put them through the claims pipeline
 	//which validates the JWT
-	//and then adds custom claims to the request context
+	//and then adds any custom claims to the request context
 	http.HandleFunc("/api/v1/person", middleware.CheckJwt(
 		middleware.GetClaimsContext(c.handlePersonRoute)))
 	http.HandleFunc("/api/v1/person/", middleware.CheckJwt(
@@ -27,13 +27,6 @@ func (c PersonController) registerRoutes() {
 }
 
 func (c PersonController) handlePersonRoute(w http.ResponseWriter, r *http.Request) {
-
-	//test the request timeout middleware
-	//time.Sleep(12 * time.Second)
-
-	//check for our user in our request context with key of 'customUser'
-	userInContext := r.Context().Value("CustomUser")
-	fmt.Println("added and fetched from context in controller: ", userInContext)
 
 	switch r.Method {
 	case http.MethodPost:
@@ -74,9 +67,7 @@ func handlePersonPost(w http.ResponseWriter, r *http.Request) {
 			}
 
 			//create the CreatedAtUrl and set it in ResponseHeader
-			p := strings.Split(r.URL.Path, "/")
-			createdAtUrl := "http://" + r.Host + p[0] + "/" + p[1] + "/" + p[2] + "/" + p[3] + "/" + strconv.Itoa(id)
-			w.Header().Set("CreatedAt", createdAtUrl)
+			SetAvailableAtRouteHeader(w, r, strconv.Itoa(id), true)
 			w.WriteHeader(http.StatusCreated)
 
 		}
@@ -100,9 +91,7 @@ func handlePersonPut(w http.ResponseWriter, r *http.Request) {
 			}
 			if dbResult == 1 {
 				//create the UpdatedAt ResponseHeader
-				p := strings.Split(r.URL.Path, "/")
-				updatedAtUrl := "http://" + r.Host + p[0] + "/" + p[1] + "/" + p[2] + "/" + p[3] + "/" + strconv.Itoa(person.Id)
-				w.Header().Set("UpdatedAt", updatedAtUrl)
+				SetAvailableAtRouteHeader(w, r, strconv.Itoa(person.Id), false)
 				w.WriteHeader(http.StatusOK)
 			} else if dbResult == 0 {
 				w.WriteHeader(http.StatusNotFound)
@@ -158,3 +147,10 @@ func handlePersonPaged(w http.ResponseWriter, r *http.Request) {
 		pageNumber + ", itemsPerPage: " + itemsPerPage))
 
 }
+
+//test the request timeout middleware
+//time.Sleep(12 * time.Second)
+
+//check for our user in our request context with key of 'customUser'
+//userInContext := r.Context().Value("CustomUser")
+//fmt.Println("added and fetched from context in controller: ", userInContext)
